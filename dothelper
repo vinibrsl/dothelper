@@ -1,79 +1,80 @@
 #!/bin/bash
 
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 DOTFILE_PATH="${SCRIPT_DIR}/Dotfile"
 
-if ! command -v git &> /dev/null
-then
-    echo "Could not backup dotfiles. \`git\` is not available"
-    exit 1
+if ! command -v git &>/dev/null; then
+	echo "Could not backup dotfiles. \`git\` is not available"
+	exit 1
 fi
 
 function setup() {
-  if [ -z "$2" ]; then
-    echo "Could not complete setup. A valid git remote URL is required. For example: \`dothelper setup git@github.com:user/repo.git\`"
-    exit 1
-  fi
+	if [ -z "$2" ]; then
+		echo "Could not complete setup. A valid git remote URL is required. For example: \`dothelper setup git@github.com:user/repo.git\`"
+		exit 1
+	fi
 
-  (
-    cd $SCRIPT_DIR && \
-    git remote add dothelper $2
-  )
+	(
+		cd $SCRIPT_DIR &&
+			git remote add dothelper $2
+	)
 }
 
 function backup {
-  if [ -f "${DOTFILE_PATH}" ]; then
-    echo "Found Dotfile"
-  else
-    echo "Could not backup dotfiles. The Dotfile file does not exist"
-    exit 1
-  fi
+	if [ -f "${DOTFILE_PATH}" ]; then
+		echo "Found Dotfile"
+	else
+		echo "Could not backup dotfiles. The Dotfile file does not exist"
+		exit 1
+	fi
 
-  while IFS= read -r DOTFILE; do
-    (cd $SCRIPT_DIR && cp $DOTFILE $SCRIPT_DIR) && \
-      echo "Copied ${DOTFILE} to local folder"
+	while IFS= read -r DOTFILE; do
+		(cd $SCRIPT_DIR && cp $DOTFILE $SCRIPT_DIR) &&
+			echo "Copied ${DOTFILE} to local folder"
 
-    FILENAME=`basename ${DOTFILE}`
+		FILENAME=$(basename ${DOTFILE})
 
-    (
-      cd $SCRIPT_DIR && \
-      git add $FILENAME && \
-      echo "Added ${DOTFILE} to git staging area"
-    )
+		(
+			cd $SCRIPT_DIR &&
+				git add $FILENAME &&
+				echo "Added ${DOTFILE} to git staging area"
+		)
 
-  done < $DOTFILE_PATH
+	done <$DOTFILE_PATH
 
-  TIMESTAMP=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
-  (
-    cd $SCRIPT_DIR && \
-    git add $DOTFILE_PATH && \
-    git commit -m "Sync dotfiles (${TIMESTAMP})" && \
-    echo "Comitted to git repository" && \
-    git push dothelper HEAD && \
-    echo "Pushed changes to branch main"
-  )
+	TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+	(
+		cd $SCRIPT_DIR &&
+			git add $DOTFILE_PATH &&
+			git commit -m "Sync dotfiles (${TIMESTAMP})" &&
+			echo "Comitted to git repository" &&
+			git push dothelper HEAD &&
+			echo "Pushed changes to branch main"
+	)
 }
 
 function add {
-  touch $DOTFILE_PATH
+	touch $DOTFILE_PATH
 
-  for FILE_TO_ADD in "${@:2}"; do
-    realpath $FILE_TO_ADD >> $DOTFILE_PATH
-  done
+	for FILE_TO_ADD in "${@:2}"; do
+		realpath $FILE_TO_ADD >>$DOTFILE_PATH
+	done
 
-  echo "Files added to Dotfile. Run \`dothelper backup\` to sync or add more files"
+	echo "Files added to Dotfile. Run \`dothelper backup\` to sync or add more files"
 }
 
 case $1 in
-  "setup" )
-    setup "$@" ;;
-	"backup" )
-    backup "$@" ;;
-	"add" )
-    add "$@" ;;
-	* )
-		echo "Invalid option. Select one of the following: backup, add"
-    exit 1
-    ;;
+"setup")
+	setup "$@"
+	;;
+"backup")
+	backup "$@"
+	;;
+"add")
+	add "$@"
+	;;
+*)
+	echo "Invalid option. Select one of the following: backup, add"
+	exit 1
+	;;
 esac
-
